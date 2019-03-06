@@ -9,8 +9,14 @@ const data = [];
     axios.get(INDEX_URL).then((response) => {
         data.push(...response.data.results)
         console.log(data)
-        // 觸發函式顯示
-        displayDataList(data);
+        // 觸發 displayDataList 函式，第一次顯示
+        // displayDataList(data);
+
+        // Step1：觸發 getTotalPage 函式，顯示 Pagination UI
+        getTotalPage(data);
+        // 觸發 getPageData 函式，同時，調用 displayDataList 函式，將資料完整顯示
+        // 從 參數 Page 1 開始執行
+        getPageData(1, data)
     }).catch((error) => console.log(error))
 
 })()
@@ -116,5 +122,63 @@ searchBtn.addEventListener('click', event => {
     results = data.filter(movie => movie.title.match(regex))
     // console.log(results);
 
-    displayDataList(results);
+    // 暫不使用 displayDataList 函式
+    // displayDataList(results);
+
+    // 調用 getTotalPage()，傳入 results 參數，以利搜尋後的頁面顯示
+    getTotalPage(results)
+    // 調用 getPageData()，傳入 預設第一頁 1 和 results 參數，以利搜尋後的頁面顯示
+    getPageData(1, results)
 })
+
+// Paginaton 
+const paginaton = document.querySelector('.pagination');
+// 每頁呈現 12 筆資料
+const ITEM_PER_PAGE = 12;
+
+// getTotalPage 函式重新渲染 pagination，讓其在 Catch API 的立即函式中使用
+function getTotalPage(data) {
+    // 宣告 totalPage 為 data 資料量 / 每頁資料，預設為 1 頁
+    let totalPages = Math.ceil(data.length / ITEM_PER_PAGE) || 1
+    let pageItemContent = '';
+
+    // for 迴圈跑 pagination 顯示內容
+    for (let i = 0; i < totalPages; i++) {
+        pageItemContent += `
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="${i+1}">${i+1}</a>
+            </li>
+        `
+    }
+    paginaton.innerHTML = pageItemContent;
+}
+
+// paginaton 事件綁定
+paginaton.addEventListener('click', e => {
+    // 以 dataset 取出特定的 page 值
+    e.preventDefault();
+    console.log(e.target.dataset.page)
+    if (e.target.tagName === "A") {
+        getPageData(e.target.dataset.page);
+    }
+})
+
+
+// 宣告 預設共用變數，可供無資料傳入時使用 
+let paginationData = []
+
+// getPageData 函式，傳入兩個參數 pageNum, data 顯示分頁後的資料
+function getPageData(pageNum, data) {
+    // 若 getPageData() 無參數傳入時，以 paginationData 作為資料來源
+    // 若 有參數傳入，則以 data 作為資料來源
+    paginationData = data || paginationData
+
+    // 宣告 offset 為 每頁要顯示的內容 從 data index排序
+    let offset = (pageNum - 1) * ITEM_PER_PAGE
+    // 以 slice()語法 從 data 中取出相符的資料，並賦予 pageData
+    // 每次都從 offset 為起點開始取出，每次 12 筆資料
+    let pageData = paginationData.slice(offset, offset + ITEM_PER_PAGE)
+
+    // 最後，再調用 displayDataList 函式，並傳入 pageData 參數
+    displayDataList(pageData)
+}
